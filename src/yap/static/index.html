@@ -103,49 +103,12 @@ main {
 }
 .status-dot.disconnected { background: var(--accent); }
 
-/* Record button with wave rings */
+/* Record button */
 .record-wrap {
-  position: relative;
-  width: 210px;
-  height: 210px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0.75rem 0;
-}
-
-.wave-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid var(--border-subtle);
-  pointer-events: none;
-  transition: border-color 0.6s ease, opacity 0.6s ease;
-}
-
-.wave-ring:nth-child(1) { width: 104px; height: 104px; }
-.wave-ring:nth-child(2) { width: 136px; height: 136px; }
-.wave-ring:nth-child(3) { width: 168px; height: 168px; }
-.wave-ring:nth-child(4) { width: 200px; height: 200px; }
-
-.recording .wave-ring {
-  animation: wave-expand 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  border-color: rgba(212, 69, 26, 0.15);
-}
-
-.recording .wave-ring:nth-child(1) { animation-delay: 0s; }
-.recording .wave-ring:nth-child(2) { animation-delay: 0.5s; }
-.recording .wave-ring:nth-child(3) { animation-delay: 1.0s; }
-.recording .wave-ring:nth-child(4) { animation-delay: 1.5s; }
-
-.recording .wave-ring:nth-child(2) {
-  border-color: var(--accent);
-  opacity: 0.45;
-}
-
-@keyframes wave-expand {
-  0% { transform: scale(0.88); opacity: 0; }
-  25% { opacity: 0.5; }
-  100% { transform: scale(1.18); opacity: 0; }
 }
 
 .record-btn {
@@ -285,10 +248,10 @@ main:hover .hotkey-hint { opacity: 1; }
 .actions button {
   flex: 1;
   padding: 0.65rem 1rem;
-  border: 1px solid var(--border);
+  border: 2px solid var(--accent);
   border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text-dim);
+  background: var(--accent);
+  color: #fff;
   font-family: var(--font-display);
   font-size: 0.85rem;
   font-weight: 600;
@@ -299,9 +262,9 @@ main:hover .hotkey-hint { opacity: 1; }
 }
 
 .actions button:hover {
-  background: var(--surface-raised);
-  border-color: #444;
-  color: var(--text);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 .actions button:disabled {
@@ -434,10 +397,6 @@ main:hover .hotkey-hint { opacity: 1; }
   </div>
 
   <div class="record-wrap" id="recordWrap">
-    <div class="wave-ring"></div>
-    <div class="wave-ring"></div>
-    <div class="wave-ring"></div>
-    <div class="wave-ring"></div>
     <button class="record-btn" id="recordBtn" disabled></button>
   </div>
   <div class="state-label" id="stateLabel">idle</div>
@@ -507,7 +466,6 @@ main:hover .hotkey-hint { opacity: 1; }
   const statusDot = document.getElementById("statusDot");
   const statusText = document.getElementById("statusText");
   const recordBtn = document.getElementById("recordBtn");
-  const recordWrap = document.getElementById("recordWrap");
   const stateLabel = document.getElementById("stateLabel");
   const output = document.getElementById("output");
   const copyBtn = document.getElementById("copyBtn");
@@ -666,10 +624,8 @@ main:hover .hotkey-hint { opacity: 1; }
   function setState(state) {
     stateLabel.textContent = state;
     recordBtn.classList.remove("recording", "transcribing");
-    recordWrap.classList.remove("recording");
     if (state === "recording") {
       recordBtn.classList.add("recording");
-      recordWrap.classList.add("recording");
       recording = true;
     } else if (state === "transcribing") {
       recordBtn.classList.add("transcribing");
