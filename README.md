@@ -62,6 +62,10 @@ yap --serve
 
 Opens a browser page with a record button, transcription display, and settings.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xuefei-wang/yap/main/webui.png" alt="yap web UI" width="400">
+</p>
+
 **Keyboard shortcuts:** Space to toggle recording, Ctrl+Shift+C to copy transcription.
 
 Two transcription modes available in the web UI:
