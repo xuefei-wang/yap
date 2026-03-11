@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>yap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Mono:wght@300;400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e0e10;
+  --surface: #161618;
+  --surface-raised: #1c1c1f;
+  --border: #2a2a2e;
+  --border-subtle: #222225;
+  --text: #e8e6e3;
+  --text-dim: #8a8a8e;
+  --text-muted: #5a5a5e;
+  --accent: #d4451a;
+  --accent-soft: #e05a30;
+  --accent-glow: rgba(212, 69, 26, 0.35);
+  --accent-glow-strong: rgba(212, 69, 26, 0.55);
+  --success: #3d9;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+body {
+  font-family: var(--font-body);
+  font-weight: 300;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Subtle radial gradient atmosphere */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212, 69, 26, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > * { position: relative; z-index: 1; }
+
+header {
+  text-align: center;
+  padding: 2.5rem 1rem 0.75rem;
+}
+
+.logo {
+  width: min(94vw, 600px);
+  height: auto;
+  mix-blend-mode: lighten;
+}
+
+main {
+  width: 100%;
+  max-width: 520px;
+  padding: 0 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* Connection status */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.4s, box-shadow 0.4s;
+}
+
+.status-dot.connected {
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(51, 221, 153, 0.4);
+}
+.status-dot.disconnected { background: var(--accent); }
+
+/* Record button with wave rings */
+.record-wrap {
+  position: relative;
+  width: 210px;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+.wave-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  pointer-events: none;
+  transition: border-color 0.6s ease, opacity 0.6s ease;
+}
+
+.wave-ring:nth-child(1) { width: 104px; height: 104px; }
+.wave-ring:nth-child(2) { width: 136px; height: 136px; }
+.wave-ring:nth-child(3) { width: 168px; height: 168px; }
+.wave-ring:nth-child(4) { width: 200px; height: 200px; }
+
+.recording .wave-ring {
+  animation: wave-expand 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-color: rgba(212, 69, 26, 0.15);
+}
+
+.recording .wave-ring:nth-child(1) { animation-delay: 0s; }
+.recording .wave-ring:nth-child(2) { animation-delay: 0.5s; }
+.recording .wave-ring:nth-child(3) { animation-delay: 1.0s; }
+.recording .wave-ring:nth-child(4) { animation-delay: 1.5s; }
+
+.recording .wave-ring:nth-child(2) {
+  border-color: var(--accent);
+  opacity: 0.45;
+}
+
+@keyframes wave-expand {
+  0% { transform: scale(0.88); opacity: 0; }
+  25% { opacity: 0.5; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+.record-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 2px solid #2a2a2e;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 1;
+  user-select: none;
+}
+
+.record-btn:hover {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 28px var(--accent-glow), 0 0 8px rgba(212, 69, 26, 0.15);
+  transform: scale(1.04);
+}
+
+.record-btn:active { transform: scale(0.94); }
+
+.record-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.record-btn.recording {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 40px var(--accent-glow-strong), 0 0 12px var(--accent-glow);
+}
+
+.record-btn.transcribing {
+  background: #6b5a30;
+  border-color: #6b5a30;
+  box-shadow: 0 0 16px rgba(107, 90, 48, 0.3);
+}
+
+/* Button icon: mic dot when idle, square when recording */
+.record-btn::after {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  margin: auto;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.record-btn.recording::after {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.record-btn.transcribing::after {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.state-label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: -0.25rem;
+}
+
+.hotkey-hint {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+main:hover .hotkey-hint { opacity: 1; }
+
+/* Output area */
+.output-area {
+  width: 100%;
+}
+
+.output-area textarea {
+  width: 100%;
+  min-height: 130px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 1rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.output-area textarea:focus {
+  border-color: #444;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(68, 68, 68, 0.3);
+}
+
+.output-area textarea::placeholder {
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+/* Action buttons */
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.actions button {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.actions button:hover {
+  background: var(--surface-raised);
+  border-color: #444;
+  color: var(--text);
+}
+
+.actions button:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.actions button.success {
+  border-color: var(--success);
+  color: var(--success);
+  box-shadow: 0 0 10px rgba(51, 221, 153, 0.15);
+}
+
+/* Settings drawer */
+.settings-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s, background 0.2s;
+}
+
+.settings-toggle:hover {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-drawer {
+  width: 100%;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-drawer.open {
+  max-height: 500px;
+}
+
+.settings-inner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.setting-row label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: var(--text-dim);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.setting-row select,
+.setting-row input[type="text"] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 300;
+  padding: 0.4rem 0.6rem;
+  outline: none;
+  min-width: 160px;
+  transition: border-color 0.2s;
+}
+
+.setting-row select:focus,
+.setting-row input[type="text"]:focus {
+  border-color: var(--text-muted);
+}
+
+.setting-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.privacy-note {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.browser-warning {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 300;
+  color: var(--accent);
+  text-align: center;
+  padding: 0.5rem;
+  letter-spacing: 0.04em;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="/banner.png" alt="yap — talk is cheap." class="logo">
+</header>
+
+<main>
+  <div class="status-bar">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">connecting...</span>
+  </div>
+
+  <div class="record-wrap" id="recordWrap">
+    <div class="wave-ring"></div>
+    <div class="wave-ring"></div>
+    <div class="wave-ring"></div>
+    <div class="wave-ring"></div>
+    <button class="record-btn" id="recordBtn" disabled></button>
+  </div>
+  <div class="state-label" id="stateLabel">idle</div>
+  <div class="hotkey-hint">Space to record</div>
+
+  <div class="output-area">
+    <textarea id="output" readonly placeholder="Transcription will appear here..."></textarea>
+  </div>
+
+  <div class="actions">
+    <button id="copyBtn" disabled>Copy</button>
+  </div>
+  <div class="hotkey-hint">Ctrl+Shift+C to copy</div>
+
+  <button class="settings-toggle" id="settingsToggle">Settings</button>
+
+  <div class="settings-drawer" id="settingsDrawer">
+    <div class="settings-inner">
+      <div class="setting-row">
+        <label for="modeSelect">Transcription</label>
+        <select id="modeSelect">
+          <option value="browser">Browser Speech (free)</option>
+          <option value="whisper">Local Whisper</option>
+        </select>
+      </div>
+      <div class="setting-row" id="modelRow">
+        <label for="modelSelect">Whisper model</label>
+        <select id="modelSelect">
+          <option value="tiny.en">tiny.en</option>
+          <option value="base.en">base.en</option>
+          <option value="small.en" selected>small.en</option>
+          <option value="medium.en">medium.en</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label for="langInput">Language</label>
+        <input type="text" id="langInput" placeholder="en" maxlength="10">
+      </div>
+      <div class="setting-row">
+        <label for="llmCheck">LLM correction</label>
+        <input type="checkbox" id="llmCheck">
+      </div>
+      <div class="setting-row" id="providerRow" style="display:none">
+        <label for="providerSelect">LLM provider</label>
+        <select id="providerSelect">
+          <option value="claude-code">claude-code</option>
+          <option value="claude">claude</option>
+          <option value="openai">openai</option>
+          <option value="gemini">gemini</option>
+        </select>
+      </div>
+      <div class="privacy-note">
+        Browser Speech sends audio to your browser vendor's servers.
+        Local Whisper keeps everything on your device.
+      </div>
+    </div>
+  </div>
+
+  <div class="browser-warning" id="browserWarning" style="display:none"></div>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- DOM refs ---
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+  const recordBtn = document.getElementById("recordBtn");
+  const recordWrap = document.getElementById("recordWrap");
+  const stateLabel = document.getElementById("stateLabel");
+  const output = document.getElementById("output");
+  const copyBtn = document.getElementById("copyBtn");
+  const settingsToggle = document.getElementById("settingsToggle");
+  const settingsDrawer = document.getElementById("settingsDrawer");
+  const modeSelect = document.getElementById("modeSelect");
+  const modelSelect = document.getElementById("modelSelect");
+  const modelRow = document.getElementById("modelRow");
+  const langInput = document.getElementById("langInput");
+  const llmCheck = document.getElementById("llmCheck");
+  const providerRow = document.getElementById("providerRow");
+  const providerSelect = document.getElementById("providerSelect");
+  const browserWarning = document.getElementById("browserWarning");
+
+  // --- State ---
+  let ws = null;
+  let connected = false;
+  let recording = false;
+  let recognition = null;
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let retryDelay = 2000;
+  const MAX_RETRY = 30000;
+
+  // --- Feature detection ---
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    modeSelect.querySelector('option[value="browser"]').disabled = true;
+    modeSelect.value = "whisper";
+    browserWarning.textContent = "Browser Speech API not available. Using Local Whisper.";
+    browserWarning.style.display = "block";
+  }
+
+  // --- Settings persistence ---
+  function loadSettings() {
+    try {
+      const s = JSON.parse(localStorage.getItem("yap-settings") || "{}");
+      if (s.mode && !modeSelect.querySelector('option[value="' + s.mode + '"]').disabled) {
+        modeSelect.value = s.mode;
+      }
+      if (s.model) modelSelect.value = s.model;
+      if (s.language) langInput.value = s.language;
+      if (s.llm !== undefined) llmCheck.checked = s.llm;
+      if (s.provider) providerSelect.value = s.provider;
+    } catch (_) { /* ignore corrupt storage */ }
+    syncSettingsUI();
+  }
+
+  function saveSettings() {
+    localStorage.setItem("yap-settings", JSON.stringify({
+      mode: modeSelect.value,
+      model: modelSelect.value,
+      language: langInput.value,
+      llm: llmCheck.checked,
+      provider: providerSelect.value,
+    }));
+  }
+
+  function syncSettingsUI() {
+    const isWhisper = modeSelect.value === "whisper";
+    modelRow.style.display = isWhisper ? "flex" : "none";
+    providerRow.style.display = llmCheck.checked ? "flex" : "none";
+    saveSettings();
+  }
+
+  modeSelect.addEventListener("change", syncSettingsUI);
+  modelSelect.addEventListener("change", saveSettings);
+  langInput.addEventListener("input", saveSettings);
+  llmCheck.addEventListener("change", syncSettingsUI);
+  providerSelect.addEventListener("change", saveSettings);
+
+  settingsToggle.addEventListener("click", function () {
+    settingsDrawer.classList.toggle("open");
+    settingsToggle.textContent = settingsDrawer.classList.contains("open")
+      ? "Hide settings" : "Settings";
+  });
+
+  // --- WebSocket ---
+  function connectWS() {
+    if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
+    ws = new WebSocket("ws://" + window.location.host);
+
+    ws.addEventListener("open", function () {
+      connected = true;
+      retryDelay = 2000;
+      statusDot.className = "status-dot connected";
+      statusText.textContent = "connected";
+      recordBtn.disabled = false;
+    });
+
+    ws.addEventListener("close", function () {
+      connected = false;
+      statusDot.className = "status-dot disconnected";
+      statusText.textContent = "disconnected";
+      if (!recording) recordBtn.disabled = modeSelect.value === "whisper";
+      scheduleReconnect();
+    });
+
+    ws.addEventListener("error", function () {
+      // close event will fire after this
+    });
+
+    ws.addEventListener("message", function (evt) {
+      try {
+        var msg = JSON.parse(evt.data);
+      } catch (_) { return; }
+
+      if (msg.type === "transcription") {
+        output.value = msg.text;
+        setState("idle");
+        enableActions();
+      } else if (msg.type === "corrected") {
+        output.value = msg.text;
+        setState("idle");
+        enableActions();
+      } else if (msg.type === "copied") {
+        copyBtn.textContent = "Copied!";
+        copyBtn.classList.add("success");
+        setTimeout(function () {
+          copyBtn.textContent = "Copy";
+          copyBtn.classList.remove("success");
+        }, 1500);
+      } else if (msg.type === "error") {
+        output.value = "[Error] " + (msg.message || "Unknown error");
+        setState("idle");
+      }
+    });
+  }
+
+  function scheduleReconnect() {
+    setTimeout(function () {
+      connectWS();
+      retryDelay = Math.min(retryDelay * 1.5, MAX_RETRY);
+    }, retryDelay);
+  }
+
+  function wsSend(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+      return true;
+    }
+    return false;
+  }
+
+  function sendServerSettings() {
+    wsSend(JSON.stringify({
+      type: "settings",
+      settings: {
+        model: modelSelect.value,
+        language: langInput.value || undefined,
+      }
+    }));
+  }
+
+  // --- State display ---
+  function setState(state) {
+    stateLabel.textContent = state;
+    recordBtn.classList.remove("recording", "transcribing");
+    recordWrap.classList.remove("recording");
+    if (state === "recording") {
+      recordBtn.classList.add("recording");
+      recordWrap.classList.add("recording");
+      recording = true;
+    } else if (state === "transcribing") {
+      recordBtn.classList.add("transcribing");
+      recordBtn.disabled = true;
+      recording = false;
+    } else {
+      recordBtn.disabled = !connected && modeSelect.value === "whisper";
+      recording = false;
+    }
+  }
+
+  function enableActions() {
+    var hasText = output.value.trim().length > 0;
+    copyBtn.disabled = !hasText;
+  }
+
+  // --- Browser Speech ---
+  function startBrowserSpeech() {
+    if (!SpeechRecognition) return;
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = langInput.value || "en-US";
+
+    var finalText = "";
+
+    recognition.onresult = function (event) {
+      var interim = "";
+      for (var i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalText += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      output.value = finalText + interim;
+    };
+
+    recognition.onerror = function (e) {
+      if (e.error === "aborted") return;
+      output.value = "[Speech error: " + e.error + "]";
+      setState("idle");
+    };
+
+    recognition.onend = function () {
+      if (!recording) return;
+      // Recording was stopped
+      recording = false;
+      output.value = finalText;
+      if (llmCheck.checked && finalText.trim()) {
+        setState("transcribing");
+        stateLabel.textContent = "correcting...";
+        wsSend(JSON.stringify({
+          type: "correct",
+          text: finalText,
+          provider: providerSelect.value,
+        }));
+      } else {
+        setState("idle");
+        enableActions();
+      }
+    };
+
+    recognition.start();
+    setState("recording");
+  }
+
+  function stopBrowserSpeech() {
+    if (recognition) {
+      recognition.stop();
+    }
+  }
+
+  // --- Local Whisper (MediaRecorder) ---
+  function startWhisperRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = function (e) {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = function () {
+        // Stop all tracks to release the mic
+        stream.getTracks().forEach(function (t) { t.stop(); });
+
+        if (audioChunks.length === 0) {
+          setState("idle");
+          return;
+        }
+
+        var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+        setState("transcribing");
+
+        // Send settings first, then audio blob
+        sendServerSettings();
+
+        blob.arrayBuffer().then(function (buf) {
+          if (wsSend(buf)) {
+            // Wait for transcription response
+          } else {
+            output.value = "[Error] Not connected to server.";
+            setState("idle");
+          }
+        });
+      };
+
+      mediaRecorder.start();
+      setState("recording");
+    }).catch(function (err) {
+      output.value = "[Mic error: " + err.message + "]";
+      setState("idle");
+    });
+  }
+
+  function stopWhisperRecording() {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
+  }
+
+  // --- Record button ---
+  recordBtn.addEventListener("click", function () {
+    if (recording) {
+      if (modeSelect.value === "browser") {
+        stopBrowserSpeech();
+      } else {
+        stopWhisperRecording();
+      }
+    } else {
+      output.value = "";
+      copyBtn.disabled = true;
+      if (modeSelect.value === "browser") {
+        startBrowserSpeech();
+      } else {
+        startWhisperRecording();
+      }
+    }
+  });
+
+  // --- Action buttons ---
+  copyBtn.addEventListener("click", function () {
+    var text = output.value.trim();
+    if (!text) return;
+
+    // Try local clipboard first, fall back to server
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyBtn.textContent = "Copied!";
+        copyBtn.classList.add("success");
+        setTimeout(function () {
+          copyBtn.textContent = "Copy";
+          copyBtn.classList.remove("success");
+        }, 1500);
+      }).catch(function () {
+        // Fall back to server-side clipboard
+        wsSend(JSON.stringify({ type: "clipboard", text: text }));
+      });
+    } else {
+      wsSend(JSON.stringify({ type: "clipboard", text: text }));
+    }
+  });
+
+  // --- Keyboard shortcuts ---
+  document.addEventListener("keydown", function (e) {
+    // Ignore when typing in input fields
+    var tag = e.target.tagName;
+    if (tag === "INPUT" || tag === "SELECT") return;
+
+    // Space — toggle recording
+    if (e.code === "Space" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      if (!recordBtn.disabled) recordBtn.click();
+    }
+
+    // Ctrl/Cmd+Shift+C — copy transcription
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === "KeyC") {
+      e.preventDefault();
+      if (!copyBtn.disabled) copyBtn.click();
+    }
+  });
+
+  // --- Init ---
+  loadSettings();
+  connectWS();
+
+  // Enable record button for browser speech even when disconnected
+  if (modeSelect.value === "browser" && SpeechRecognition) {
+    recordBtn.disabled = false;
+  }
+})();
+</script>
+</body>
+</html>
